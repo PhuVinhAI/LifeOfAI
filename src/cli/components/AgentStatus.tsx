@@ -7,7 +7,7 @@ interface AgentStatusProps {
   identity: { name: string; age: number } | undefined;
   needs: Needs | undefined;
   goal: { label: string; urgency: number } | null;
-  tickCount: number;
+  timeDisplay: string;
   engineState: string;
 }
 
@@ -28,7 +28,7 @@ export const AgentStatus: React.FC<AgentStatusProps> = ({
   identity,
   needs,
   goal,
-  tickCount,
+  timeDisplay,
   engineState,
 }) => {
   return (
@@ -37,7 +37,10 @@ export const AgentStatus: React.FC<AgentStatusProps> = ({
         {identity?.name ?? '???'} — {identity?.age ?? '?'} tuổi
       </Text>
       <Text>
-        Tick: {tickCount} | Trạng thái:{' '}
+        🕐 {timeDisplay}
+      </Text>
+      <Text>
+        Trạng thái:{' '}
         <Text color={engineState === 'running' ? 'green' : 'yellow'}>
           {engineState === 'running' ? '▶ ĐANG SỐNG' : '⏸ TẠM DỪNG'}
         </Text>

@@ -1,13 +1,14 @@
 import type { World, IEventBus } from '../../../types/index.js';
 import type { Needs } from '../components/needs.js';
 
-const DECAY_RATES: Record<keyof Omit<Needs, 'type'>, number> = {
-  hunger: 0.5,
-  thirst: 0.7,
-  energy: 0.6,
-  bladder: 0.8,
-  hygiene: 0.3,
-  fun: 0.4,
+// Decay rates per hour (realistic)
+const DECAY_PER_HOUR: Record<keyof Omit<Needs, 'type'>, number> = {
+  hunger: 6,     // Đói sau ~16 tiếng không ăn
+  thirst: 10,    // Khát sau ~10 tiếng không uống
+  energy: 5,     // Mệt sau ~20 tiếng không ngủ
+  bladder: 15,   // Cần đi vệ sinh sau ~6-7 tiếng
+  hygiene: 3,    // Bẩn sau ~33 tiếng
+  fun: 4,        // Chán sau ~25 tiếng
 };
 
 const NEED_LABELS: Record<string, string> = {
@@ -17,17 +18,17 @@ const NEED_LABELS: Record<string, string> = {
 
 const CRITICAL_THRESHOLD = 20;
 
-export function needDecaySystem(world: World, _delta: number, events: IEventBus): void {
+export function needDecaySystem(world: World, deltaHours: number, events: IEventBus): void {
   const agents = world.query(['needs']);
   for (const agent of agents) {
     const needs = agent.components.get('needs') as Needs | undefined;
     if (!needs) continue;
 
-    for (const [key, rate] of Object.entries(DECAY_RATES) as [keyof Omit<Needs, 'type'>, number][]) {
+    for (const [key, ratePerHour] of Object.entries(DECAY_PER_HOUR) as [keyof Omit<Needs, 'type'>, number][]) {
       const oldValue = needs[key];
-      needs[key] = Math.max(0, oldValue - rate);
+      const decay = ratePerHour * deltaHours;
+      needs[key] = Math.max(0, oldValue - decay);
 
-      // Emit warning if need goes critical
       if (oldValue > CRITICAL_THRESHOLD && needs[key] <= CRITICAL_THRESHOLD) {
         events.emit('needs:critical', agent.id, key, needs[key]);
       }
@@ -39,4 +40,4 @@ export function getNeedLabel(need: string): string {
   return NEED_LABELS[need] ?? need;
 }
 
-export { DECAY_RATES, CRITICAL_THRESHOLD };
+export { DECAY_PER_HOUR, CRITICAL_THRESHOLD };

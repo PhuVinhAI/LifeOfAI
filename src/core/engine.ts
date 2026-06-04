@@ -1,5 +1,6 @@
 import { WorldImpl } from './ecs.js';
 import { TypedEventEmitter } from './event-bus.js';
+import { GameClock } from './game-clock.js';
 import type { IEventBus } from '../types/index.js';
 
 export type EngineState = 'running' | 'paused' | 'stopped';
@@ -7,12 +8,14 @@ export type EngineState = 'running' | 'paused' | 'stopped';
 export class GameEngine {
   world: WorldImpl;
   events: IEventBus;
+  clock: GameClock;
   state: EngineState = 'stopped';
   tickCount = 0;
 
   constructor() {
     this.world = new WorldImpl();
     this.events = new TypedEventEmitter();
+    this.clock = new GameClock();
   }
 
   start(): void {
@@ -39,21 +42,19 @@ export class GameEngine {
     else this.start();
   }
 
-  // Advance one tick — called from user input or auto-loop
-  tick(): void {
-    if (this.state !== 'running') return;
+  /** Advance game time by N minutes. Decays needs, runs systems, fires events. */
+  advanceTime(minutes: number): void {
+    if (minutes <= 0) return;
     this.tickCount++;
-    this.world.tick(1);
+    this.clock.advance(minutes);
+    this.world.tick(minutes / 60);  // Pass delta in hours
     this.events.emit('engine:tick', this.tickCount);
+    this.events.emit('engine:time_advanced', this.clock.toJSON(), minutes);
   }
 
-  // Run ticks continuously until paused externally
-  async runLoop(tickIntervalMs: number, signal: AbortSignal): Promise<void> {
-    while (!signal.aborted) {
-      if (this.state === 'running') {
-        this.tick();
-      }
-      await new Promise(resolve => setTimeout(resolve, tickIntervalMs));
-    }
+  // Legacy tick for manual step — advances 5 minutes (1 game tick)
+  tick(): void {
+    if (this.state !== 'running') return;
+    this.advanceTime(5);
   }
 }

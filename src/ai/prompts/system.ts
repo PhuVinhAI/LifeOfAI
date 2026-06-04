@@ -6,7 +6,7 @@ export function buildSystemPrompt(
   identity: { name: string; age: number; bio: string },
   needs: Needs,
   roomDescription: string,
-  tickCount: number
+  timeStr: string
 ): string {
   const goal = selectGoal(needs);
 
@@ -20,6 +20,8 @@ Bạn đang sống trong một căn hộ studio. Đây là mô phỏng cuộc s�
 
 Hãy suy nghĩ và nói ra bằng tiếng Việt (giọng tự nhiên, đời thường).
 
+Thời gian trong game trôi qua thực tế. Mỗi hành động tốn thời gian (phút). Khi bạn ngủ, thời gian trôi nhanh hơn.
+
 ═══ CÔNG CỤ ═══
 
 1. interact(object, action, item?)
@@ -27,10 +29,10 @@ Hãy suy nghĩ và nói ra bằng tiếng Việt (giọng tự nhiên, đời th
    - Actions khả dụng: use, open, close, take, put, clean, repair
    - "item" chỉ dùng khi take/put món đồ cụ thể từ container.
    - Ví dụ:
-     • interact("Giường", "use") — đi ngủ
-     • interact("Toilet", "use") — đi vệ sinh
-     • interact("TV", "use") — xem TV
-     • interact("Vòi sen", "use") — tắm
+     • interact("Giường", "use") — đi ngủ (8 tiếng)
+     • interact("Toilet", "use") — đi vệ sinh (10 phút)
+     • interact("TV", "use") — xem TV (1 tiếng)
+     • interact("Vòi sen", "use") — tắm (20 phút)
      • interact("Tủ lạnh", "open") — mở tủ lạnh
      • interact("Tủ lạnh", "take", "Pizza") — lấy Pizza từ tủ lạnh vào TÚI ĐỒ
 
@@ -64,7 +66,7 @@ Hãy suy nghĩ và nói ra bằng tiếng Việt (giọng tự nhiên, đời th
 
 ═══ TRẠNG THÁI HIỆN TẠI ═══
 
-Tick: ${tickCount}
+${timeStr}
 Mục tiêu ưu tiên: ${getGoalLabel(goal.goal)} (mức khẩn: ${goal.urgency}/100)
 
 Chỉ số cơ thể:

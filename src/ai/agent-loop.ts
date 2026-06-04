@@ -8,7 +8,6 @@ import { createToolRegistry } from './tools/index.js';
 import { getLogger } from '../core/logger.js';
 import type { Needs } from '../plugins/core-life/components/needs.js';
 import type { Identity } from '../plugins/core-life/components/identity.js';
-import type { ObjectState } from '../plugins/core-life/components/object-state.js';
 import type { IEventBus } from '../types/index.js';
 
 export interface AgentConfig {
@@ -18,6 +17,8 @@ export interface AgentConfig {
   resolver: CapabilityResolver;
   events: IEventBus;
   model?: string;
+  advanceTime: (minutes: number) => string;
+  getTimeString: () => string;
 }
 
 export class AgentLoop {
@@ -28,6 +29,8 @@ export class AgentLoop {
   private events: IEventBus;
   private memory: MemoryManager;
   private model: string;
+  private advanceTime: (minutes: number) => string;
+  private getTimeString: () => string;
   private running = false;
   private abortController: AbortController | null = null;
 
@@ -39,12 +42,10 @@ export class AgentLoop {
     this.events = config.events;
     this.memory = new MemoryManager();
     this.model = config.model ?? 'gpt-4o';
+    this.advanceTime = config.advanceTime;
+    this.getTimeString = config.getTimeString;
   }
 
-  /**
-   * Start the never-ending agent loop.
-   * Runs until pause() is called.
-   */
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
@@ -79,9 +80,6 @@ export class AgentLoop {
     log.info('agent-loop', 'Agent loop stopped', { agentId: this.agentId });
   }
 
-  /**
-   * Run a single turn: build context → runTools → handle results → repeat.
-   */
   private async runOneTurn(): Promise<void> {
     const log = getLogger();
     const agent = this.world.getEntity(this.agentId);
@@ -102,33 +100,28 @@ export class AgentLoop {
       return;
     }
 
-    // Select goal based on current needs
     const goal = selectGoal(needs);
+    const timeStr = this.getTimeString();
     log.debug('agent-loop', 'Turn started', {
       agentId: this.agentId,
       goal: goal.goal,
       urgency: goal.urgency,
+      time: timeStr,
       needs: { ...needs, type: undefined },
     });
 
-    // Build room description
     const roomDesc = this.resolver.describeRoom(this.world);
-    const tickCount = (this.world as any).tickCount ?? 0;
 
-    // Build context
-    const systemPrompt = buildSystemPrompt(identity, needs, roomDesc, tickCount);
+    const systemPrompt = buildSystemPrompt(identity, needs, roomDesc, timeStr);
 
-    // Prepare messages — if first run, add system prompt. Otherwise reuse history.
     const messages = this.memory.getAll();
     if (messages.length === 0) {
       messages.push({ role: 'system', content: systemPrompt });
     } else {
-      // Update system prompt with latest state
       messages[0] = { role: 'system', content: systemPrompt };
     }
 
-    // Add current context as user message (simulation tick notification)
-    const contextMsg = buildContextMessage(needs, goal, tickCount);
+    const contextMsg = buildContextMessage(needs, goal, timeStr);
     messages.push({ role: 'user', content: contextMsg });
 
     log.debug('agent-loop', 'Sending request to model', {
@@ -138,13 +131,18 @@ export class AgentLoop {
       contextMsg,
     });
 
-    // Run tools loop
     const tools = createToolRegistry(this.resolver, this.world, this.agentId);
 
+    // Separator between turns so streamed thoughts don't stick together
+    if (this.memory.getAll().length > 0) {
+      this.events.emit('ai:stream', this.agentId, '\n───\n');
+    }
+
     try {
-      // Track tool calls by call ID — functionToolCallResult only gives result, not name
       const toolCallMap = new Map<string, { name: string; args: Record<string, unknown> }>();
       let streamBuffer = '';
+      let totalActionDuration = 0;
+      let hadToolCall = false;  // Track tool calls to insert space when stream resumes
 
       const runner = this.openai.chat.completions
         .runTools({
@@ -154,10 +152,18 @@ export class AgentLoop {
           messages,
         })
         .on('content', (diff) => {
+          // After a tool call, the model's next text chunk may lack a leading space.
+          // Insert one if the buffer doesn't end with whitespace and delta is a word.
+          if (hadToolCall && !/[\s\n]$/.test(streamBuffer) && /^[a-zA-ZÀ-ỹ]/.test(diff)) {
+            streamBuffer += ' ';
+            this.events.emit('ai:stream', this.agentId, ' ');
+          }
+          hadToolCall = false;
           streamBuffer += diff;
           this.events.emit('ai:stream', this.agentId, diff);
         })
         .on('functionToolCall', (call: any) => {
+          hadToolCall = true;
           const id = call?.id ?? '';
           const name = call?.name ?? call?.function?.name ?? 'unknown';
           let args: Record<string, unknown> = {};
@@ -176,7 +182,26 @@ export class AgentLoop {
           const callId = result?.tool_call_id ?? result?.id ?? '';
           const tracked = toolCallMap.get(callId);
           const name = tracked?.name ?? result?.name ?? 'unknown';
-          const value = result?.result ?? result?.content ?? result;
+          let value = result?.result ?? result?.content ?? result;
+
+          // Parse result to extract duration
+          let parsed: any = value;
+          if (typeof value === 'string') {
+            try { parsed = JSON.parse(value); } catch {}
+          }
+          const duration = parsed?.duration ?? 0;
+
+          // Advance game time by the action's duration
+          if (duration > 0) {
+            totalActionDuration += duration;
+            const newTime = this.advanceTime(duration);
+            // Append time info to result message so AI sees time progression
+            if (parsed?.message) {
+              parsed.message = `${parsed.message} (⏱ ${duration} phút → ${newTime})`;
+              value = JSON.stringify(parsed);
+            }
+          }
+
           log.info('tool-result', `${name} returned`, { agentId: this.agentId, tool: name, result: value });
           this.events.emit('ai:tool_result', this.agentId, name, value);
         });
@@ -188,10 +213,10 @@ export class AgentLoop {
         agentId: this.agentId,
         streamLength: streamBuffer.length,
         finalMessageCount: allMessages.length,
+        actionDuration: totalActionDuration,
         usage: final.usage,
       });
 
-      // Store all messages in memory
       this.memory.reset();
       for (const msg of allMessages) {
         this.memory.push(msg);
@@ -203,9 +228,6 @@ export class AgentLoop {
     }
   }
 
-  /**
-   * Pause the agent loop.
-   */
   pause(): void {
     this.running = false;
     this.abortController?.abort();
@@ -216,14 +238,14 @@ export class AgentLoop {
   }
 }
 
-function buildContextMessage(needs: Needs, goal: { label: string; urgency: number }, tick: number): string {
+function buildContextMessage(needs: Needs, goal: { label: string; urgency: number }, timeStr: string): string {
   const criticals: string[] = [];
   if (needs.hunger < 20) criticals.push('ĐÓI TRẦM TRỌNG');
   if (needs.thirst < 20) criticals.push('KHÁT NGHIÊM TRỌNG');
   if (needs.bladder < 15) criticals.push('CẦN ĐI VỆ SINH GẤP');
   if (needs.energy < 10) criticals.push('KIỆT SỨC');
 
-  let msg = `[Tick ${tick}] Ưu tiên: ${goal.label} (${goal.urgency}/100).`;
+  let msg = `[${timeStr}] Ưu tiên: ${goal.label} (${goal.urgency}/100).`;
   if (criticals.length > 0) {
     msg += ` CẢNH BÁO: ${criticals.join(', ')}!`;
   }

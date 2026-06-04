@@ -27,7 +27,7 @@ export const ContainerTrait: TraitDefinition = {
       case 'open': {
         setState(entity, 'open');
         const itemList = items.map(i => `${i.name} (x${i.quantity})`).join(', ') || 'trống';
-        return { success: true, message: `Mở ${entity.id}. Bên trong: ${itemList}.` };
+        return { success: true, message: `Mở ${entity.id}. Bên trong: ${itemList}.`, duration: 1 };
       }
       case 'take': {
         if (getState(entity) !== 'open') {
@@ -62,7 +62,7 @@ export const ContainerTrait: TraitDefinition = {
           else invAny.items.push(buildInventoryItem(itemName));
         }
 
-        return { success: true, message: `Đã lấy "${itemName}" từ ${entity.id} và bỏ vào túi.` };
+        return { success: true, message: `Đã lấy "${itemName}" từ ${entity.id} và bỏ vào túi.`, duration: 2 };
       }
       case 'put': {
         if (getState(entity) !== 'open') {
@@ -82,7 +82,7 @@ export const ContainerTrait: TraitDefinition = {
         if (existing) existing.quantity++;
         else items.push({ name: putName, quantity: 1 });
         saveItems(entity, items);
-        return { success: true, message: `Để "${putName}" vào ${entity.id}.` };
+        return { success: true, message: `Để "${putName}" vào ${entity.id}.`, duration: 2 };
       }
       default:
         return { success: false, message: `Hành động "${action}" không khả dụng với ${entity.id}.` };

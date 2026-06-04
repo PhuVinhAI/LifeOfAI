@@ -41,9 +41,9 @@ objects:
     traitConfig:
       need_provider:
         need: energy
-        value: 40
-        duration: 3
-        cooldown: 1
+        value: 100
+        duration: 480   # 8 tiếng ngủ
+        cooldown: 60
       usable:
         cooldown: 0
 
@@ -54,9 +54,9 @@ objects:
     traitConfig:
       need_provider:
         need: bladder
-        value: 50
-        duration: 1
-        cooldown: 2
+        value: 100
+        duration: 10    # 10 phút
+        cooldown: 5
 
   - name: "Vòi sen"
     x: 9
@@ -65,9 +65,9 @@ objects:
     traitConfig:
       need_provider:
         need: hygiene
-        value: 50
-        duration: 2
-        cooldown: 1
+        value: 80
+        duration: 20    # 20 phút tắm
+        cooldown: 10
 
   - name: "TV"
     x: 4
@@ -76,6 +76,6 @@ objects:
     traitConfig:
       need_provider:
         need: fun
-        value: 30
-        duration: 2
-        cooldown: 1
+        value: 40
+        duration: 60    # 1 tiếng xem TV
+        cooldown: 15

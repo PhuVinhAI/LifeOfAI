@@ -49,9 +49,11 @@ export function createConsumeTool(world: World, agentId: string) {
       if (item.quantity <= 0) inv.items.splice(idx, 1);
 
       const verb = item.type === 'food' ? 'ăn' : 'uống';
+      const duration = item.type === 'food' ? 20 : 10;
       return {
         success: true,
         message: `Đã ${verb} ${input.item}. ${restoreMsg.join(', ')}.`,
+        duration,
       };
     },
   });

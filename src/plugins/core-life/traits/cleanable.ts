@@ -18,14 +18,14 @@ export const CleanableTrait: TraitDefinition = {
 
   onInteract(entity: Entity, action: string, _user: Entity, _params: Record<string, unknown> | undefined, _world: World): InteractionResult {
     if (action === 'clean') {
-      return { success: true, message: `Đã dọn dẹp ${entity.id}.` };
+      return { success: true, message: `Đã dọn dẹp ${entity.id}.`, duration: 20 };
     }
     // 'use' action — just report current state, the usable trait handles the actual use
     const state = getState(entity);
     if (state === 'filthy') {
       return { success: false, message: `${entity.id} quá bẩn để dùng. Cần dọn dẹp trước.` };
     }
-    return { success: true, message: `Đã dùng ${entity.id}.` };
+    return { success: true, message: `Đã dùng ${entity.id}.`, duration: 10 };
   },
 
   tick(entity: Entity, _world: World, _delta: number): void {

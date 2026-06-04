@@ -25,7 +25,7 @@ export const UsableTrait: TraitDefinition = {
       state.traits['usable'] = 'in_use';
     }
 
-    return { success: true, message: `Đã dùng ${entity.id}.` };
+    return { success: true, message: `Đã dùng ${entity.id}.`, duration: 15 };
   },
 
   tick(entity: Entity, _world: World, _delta: number): void {

@@ -51,6 +51,7 @@ async function main() {
 
   // Pipe engine events to log
   engine.events.on('engine:tick', (t) => logger.debug('engine', `Tick ${t}`));
+  engine.events.on('engine:time_advanced', (time, mins) => logger.debug('engine', `Time advanced ${mins} min`, { time }));
   engine.events.on('engine:play', () => logger.info('engine', 'Resumed'));
   engine.events.on('engine:pause', () => logger.info('engine', 'Paused'));
   engine.events.on('needs:critical', (agentId, need, value) => {
@@ -126,6 +127,11 @@ async function main() {
     resolver,
     events: engine.events,
     model,
+    advanceTime: (minutes: number) => {
+      engine.advanceTime(minutes);
+      return engine.clock.formatTime();
+    },
+    getTimeString: () => engine.clock.formatFull(),
   });
 
   // 7. Render CLI

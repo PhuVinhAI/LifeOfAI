@@ -1,7 +1,8 @@
 import fs from 'fs';
 import type { SaveData, World } from '../types/index.js';
+import type { GameClock } from './game-clock.js';
 
-export function saveWorld(world: World, tick: number, filePath: string): void {
+export function saveWorld(world: World, tick: number, clock: GameClock, filePath: string): void {
   const data: SaveData = {
     version: '0.1.0',
     timestamp: Date.now(),
@@ -12,6 +13,7 @@ export function saveWorld(world: World, tick: number, filePath: string): void {
       ),
     })),
     tick,
+    gameTime: clock.toJSON(),
   };
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 }

@@ -20,16 +20,22 @@ export class TraitRegistry {
 
   /**
    * Find a trait that supports the given capability.
-   * Returns the FIRST trait that lists the action in its capabilities.
+   * Priority: need_provider > other specific traits > usable (generic fallback).
+   * need_provider must always win for "use" since it's the only trait that modifies agent needs.
    */
   findCapable(action: string, traitNames: string[]): { trait: TraitDefinition; traitName: string } | null {
+    const matches: { trait: TraitDefinition; traitName: string }[] = [];
     for (const name of traitNames) {
       const trait = this.traits.get(name);
       if (trait && trait.capabilities.includes(action)) {
-        return { trait, traitName: name };
+        matches.push({ trait, traitName: name });
       }
     }
-    return null;
+    if (matches.length === 0) return null;
+    const needProvider = matches.find(m => m.traitName === 'need_provider');
+    if (needProvider) return needProvider;
+    const specific = matches.find(m => m.traitName !== 'usable');
+    return specific ?? matches[0]!;
   }
 
   /**

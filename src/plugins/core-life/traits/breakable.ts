@@ -20,16 +20,16 @@ export const BreakableTrait: TraitDefinition = {
     const state = getState(entity);
     if (action === 'repair') {
       if (state === 'working') {
-        return { success: true, message: `${entity.id} vẫn còn tốt, không cần sửa.` };
+        return { success: true, message: `${entity.id} vẫn còn tốt, không cần sửa.`, duration: 5 };
       }
       setState(entity, 'working');
-      return { success: true, message: `Đã sửa ${entity.id}.` };
+      return { success: true, message: `Đã sửa ${entity.id}.`, duration: 30 };
     }
     // 'use' — check if broken
     if (state === 'broken') {
       return { success: false, message: `${entity.id} đã hỏng, cần sửa chữa.` };
     }
-    return { success: true, message: `${entity.id} hoạt động bình thường.` };
+    return { success: true, message: `${entity.id} hoạt động bình thường.`, duration: 5 };
   },
 
   tick(entity: Entity, _world: World, _delta: number): void {

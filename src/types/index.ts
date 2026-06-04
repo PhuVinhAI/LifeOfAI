@@ -1,3 +1,12 @@
+// ─── Game Time ───────────────────────────────────────────────
+export interface GameTimeData {
+  minute: number;
+  hour: number;
+  day: number;
+  month: number;
+  year: number;
+}
+
 // ─── ECS Types ───────────────────────────────────────────────
 export interface Component {
   type: string;
@@ -122,6 +131,7 @@ export interface TraitDefinition {
 export interface InteractionResult {
   success: boolean;
   message: string;
+  duration?: number;   // minutes this action takes
   effects?: Array<{
     entityId: string;
     component: string;
@@ -154,6 +164,7 @@ export interface GameEvents {
   'engine:play': () => void;
   'engine:pause': () => void;
   'engine:tick': (tick: number) => void;
+  'engine:time_advanced': (time: GameTimeData, minutesElapsed: number) => void;
   'ai:stream': (agentId: string, text: string) => void;
   'ai:tool_call': (agentId: string, tool: string, args: Record<string, unknown>) => void;
   'ai:tool_result': (agentId: string, tool: string, result: InteractionResult) => void;
@@ -176,6 +187,7 @@ export interface SaveData {
     components: Record<string, unknown>;
   }>;
   tick: number;
+  gameTime: GameTimeData;
 }
 
 // ─── Tool Definition ─────────────────────────────────────────

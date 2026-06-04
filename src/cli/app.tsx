@@ -21,7 +21,7 @@ interface AppProps {
 export const App: React.FC<AppProps> = ({ engine, agentLoop, roomWidth, roomHeight }) => {
   const { exit } = useApp();
   const {
-    tickCount,
+    timeDisplay,
     engineState,
     streamLines,
     toolCalls,
@@ -51,7 +51,7 @@ export const App: React.FC<AppProps> = ({ engine, agentLoop, roomWidth, roomHeig
     } else if (input === 's') {
       // Save state — dynamic import for ESM
       import('../core/serializer.js').then(({ saveWorld }) => {
-        saveWorld(engine.world, engine.tickCount, 'save.json');
+        saveWorld(engine.world, engine.tickCount, engine.clock, 'save.json');
       });
     }
   });
@@ -84,7 +84,7 @@ export const App: React.FC<AppProps> = ({ engine, agentLoop, roomWidth, roomHeig
             identity={identity}
             needs={needs as Needs | undefined}
             goal={goal}
-            tickCount={tickCount}
+            timeDisplay={timeDisplay}
             engineState={engineState}
           />
         </Box>

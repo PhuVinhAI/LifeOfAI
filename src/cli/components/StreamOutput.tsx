@@ -6,17 +6,25 @@ interface StreamOutputProps {
   maxLines?: number;
 }
 
-export const StreamOutput: React.FC<StreamOutputProps> = ({ lines, maxLines = 10 }) => {
+export const StreamOutput: React.FC<StreamOutputProps> = ({ lines, maxLines = 8 }) => {
   const visible = lines.slice(-maxLines);
+  const isStreaming = lines.length > 0 && lines[lines.length - 1]!.length > 0;
+
   return (
-    <Box flexDirection="column" borderStyle="single" padding={1} minHeight={maxLines + 2}>
+    <Box flexDirection="column" borderStyle="single" padding={1}>
       <Text bold>💭 Suy nghĩ</Text>
-      {visible.length === 0 && (
+      {lines.length === 0 && (
         <Text dimColor>Đang chờ AI...</Text>
       )}
-      {visible.map((line, i) => (
-        <Text key={i}>{line}</Text>
-      ))}
+      {visible.map((line, i) => {
+        const isLast = i === visible.length - 1;
+        const display = isLast && isStreaming ? `${line}▌` : line;
+        return (
+          <Text key={i} dimColor={line.length === 0 && !isLast}>
+            {display || ' '}
+          </Text>
+        );
+      })}
     </Box>
   );
 };

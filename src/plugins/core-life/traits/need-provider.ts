@@ -4,8 +4,8 @@ import type { Needs } from '../../../types/index.js';
 interface NeedProviderConfig {
   need: keyof Omit<Needs, 'type'>;
   value: number;
-  duration: number;   // tick count
-  cooldown: number;   // tick count before reuse
+  duration: number;   // minutes
+  cooldown: number;   // minutes before reuse
 }
 
 export const NeedProviderTrait: TraitDefinition = {
@@ -46,6 +46,7 @@ export const NeedProviderTrait: TraitDefinition = {
     return {
       success: true,
       message: `Đã dùng ${entity.id}. ${getNeedLabel(config.need)} +${config.value}.`,
+      duration: config.duration,
       effects: [
         { entityId: user.id, component: 'needs', changes: { [config.need]: config.value } },
       ],

@@ -15,6 +15,7 @@ export interface ToolCallEntry {
 
 export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
   const [tickCount, setTickCount] = useState(0);
+  const [timeDisplay, setTimeDisplay] = useState(engine.clock.formatDisplay());
   const [engineState, setEngineState] = useState(engine.state);
   const [streamLines, setStreamLines] = useState<string[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCallEntry[]>([]);
@@ -22,6 +23,7 @@ export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
 
   useEffect(() => {
     const onTick = (t: number) => setTickCount(t);
+    const onTimeAdvanced = () => setTimeDisplay(engine.clock.formatDisplay());
     const onPlay = () => setEngineState('running');
     const onPause = () => setEngineState('paused');
     const onStream = (_agentId: string, text: string) => {
@@ -56,6 +58,7 @@ export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
     };
 
     engine.events.on('engine:tick', onTick);
+    engine.events.on('engine:time_advanced', onTimeAdvanced);
     engine.events.on('engine:play', onPlay);
     engine.events.on('engine:pause', onPause);
     engine.events.on('ai:stream', onStream);
@@ -64,6 +67,7 @@ export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
 
     return () => {
       engine.events.off('engine:tick', onTick);
+      engine.events.off('engine:time_advanced', onTimeAdvanced);
       engine.events.off('engine:play', onPlay);
       engine.events.off('engine:pause', onPause);
       engine.events.off('ai:stream', onStream);
@@ -112,6 +116,7 @@ export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
 
   return {
     tickCount,
+    timeDisplay,
     engineState,
     streamLines,
     toolCalls,
