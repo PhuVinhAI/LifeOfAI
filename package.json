@@ -21,6 +21,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^17.4.2",
     "ink": "^7.0.5",
     "openai": "^6.42.0",
     "react": "^19.2.7",

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,11 +14,13 @@ import { AgentLoop } from './ai/agent-loop.js';
 import { PluginLoader } from './core/plugin-loader.js';
 import { coreLifePlugin } from './plugins/core-life/index.js';
 import { App } from './cli/app.js';
+import { initLogger } from './core/logger.js';
 
 import { createNeeds } from './plugins/core-life/components/needs.js';
 import { createIdentity } from './plugins/core-life/components/identity.js';
 import { createPosition } from './plugins/core-life/components/position.js';
 import { createObjectState } from './plugins/core-life/components/object-state.js';
+import { createInventory } from './plugins/core-life/components/inventory.js';
 
 import type { RoomConfig, AgentConfig } from './types/index.js';
 
@@ -30,12 +33,29 @@ function loadYaml<T>(filename: string): T {
 }
 
 async function main() {
+  // 0. Init logger first — must be before everything else
+  const logger = initLogger('logs');
+  logger.info('startup', 'LifeOfAI starting', {
+    version: '0.1.0',
+    node: process.version,
+    cwd: process.cwd(),
+  });
+
   // 1. Load configs
   const roomConfig = loadYaml<RoomConfig>('room.yaml');
   const agentConfig = loadYaml<AgentConfig>('agent.yaml');
+  logger.info('startup', 'Configs loaded', { room: roomConfig.id, agent: agentConfig.name });
 
   // 2. Init engine
   const engine = new GameEngine();
+
+  // Pipe engine events to log
+  engine.events.on('engine:tick', (t) => logger.debug('engine', `Tick ${t}`));
+  engine.events.on('engine:play', () => logger.info('engine', 'Resumed'));
+  engine.events.on('engine:pause', () => logger.info('engine', 'Paused'));
+  engine.events.on('needs:critical', (agentId, need, value) => {
+    logger.warn('needs', `Critical need: ${need}`, { agentId, need, value });
+  });
 
   // 3. Load plugins
   const pluginLoader = new PluginLoader();
@@ -80,10 +100,23 @@ async function main() {
   const identity = createIdentity(agentConfig.name, agentConfig.age, agentConfig.bio);
   const pos = createPosition(agentConfig.startX, agentConfig.startY, roomConfig.id);
 
-  engine.world.spawnEntity(agentId, [needs, identity, pos]);
+  engine.world.spawnEntity(agentId, [needs, identity, pos, createInventory(10)]);
 
-  // 6. Init AI
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  // 6. Init AI — supports any OpenAI-compatible provider via OPENAI_BASE_URL
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    logger.error('startup', 'OPENAI_API_KEY missing');
+    console.error('Lỗi: OPENAI_API_KEY chưa được set. Tạo file .env (copy từ .env.example).');
+    process.exit(1);
+  }
+  const baseURL = process.env.OPENAI_BASE_URL;
+  const model = process.env.OPENAI_MODEL ?? 'gpt-4o';
+  logger.info('startup', 'OpenAI client configured', { baseURL: baseURL ?? '(default)', model });
+
+  const openai = new OpenAI({
+    apiKey,
+    baseURL,
+  });
   const resolver = new CapabilityResolver(traitRegistry);
 
   const agentLoop = new AgentLoop({
@@ -92,6 +125,7 @@ async function main() {
     world: engine.world,
     resolver,
     events: engine.events,
+    model,
   });
 
   // 7. Render CLI
@@ -106,6 +140,8 @@ async function main() {
 
   await waitUntilExit();
   agentLoop.pause();
+  logger.info('shutdown', 'App exited');
+  logger.close();
 }
 
 main().catch((err) => {

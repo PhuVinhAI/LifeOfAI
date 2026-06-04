@@ -22,10 +22,11 @@ describe('UsableTrait', () => {
     expect(result.success).toBe(true);
   });
 
-  it('rejects use when in_use', () => {
+  it('auto-resets and allows use even when in_use', () => {
+    // Objects like chairs/tables can be used by multiple agents without blocking
     const entity = makeEntity('in_use');
     const result = UsableTrait.onInteract(entity, 'use', {} as Entity, {}, {} as World);
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('has use capability', () => {
@@ -34,5 +35,12 @@ describe('UsableTrait', () => {
 
   it('has correct initial state', () => {
     expect(UsableTrait.initialState).toBe('idle');
+  });
+
+  it('tick auto-resets in_use to idle', () => {
+    const entity = makeEntity('in_use');
+    UsableTrait.tick!(entity, {} as World, 1);
+    const state = entity.components.get('object_state') as any;
+    expect(state.traits.usable).toBe('idle');
   });
 });

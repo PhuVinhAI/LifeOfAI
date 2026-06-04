@@ -28,17 +28,38 @@ export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
       streamBuffer.current += text;
       setStreamLines(streamBuffer.current.split('\n'));
     };
-    const onToolResult = (_agentId: string, toolName: string, result: unknown) => {
+    // Track pending tool calls awaiting result (by tool name, since IDs may vary)
+    const pendingArgs: Record<string, Record<string, unknown>> = {};
+    const onToolCall = (_agentId: string, toolName: string, args: Record<string, unknown>) => {
+      pendingArgs[toolName] = args;
       setToolCalls(prev => [
         ...prev,
-        { tool: toolName, args: {}, result, timestamp: Date.now() },
+        { tool: toolName, args, result: '...đang chạy', timestamp: Date.now() },
       ]);
+    };
+    const onToolResult = (_agentId: string, toolName: string, result: unknown) => {
+      const args = pendingArgs[toolName] ?? {};
+      delete pendingArgs[toolName];
+      setToolCalls(prev => {
+        // Find the most recent entry for this tool that's still "đang chạy"
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i--) {
+          if (next[i] && next[i]!.tool === toolName && next[i]!.result === '...đang chạy') {
+            next[i] = { ...next[i]!, result, args };
+            return next;
+          }
+        }
+        // Fallback: append new entry
+        next.push({ tool: toolName, args, result, timestamp: Date.now() });
+        return next;
+      });
     };
 
     engine.events.on('engine:tick', onTick);
     engine.events.on('engine:play', onPlay);
     engine.events.on('engine:pause', onPause);
     engine.events.on('ai:stream', onStream);
+    engine.events.on('ai:tool_call', onToolCall);
     engine.events.on('ai:tool_result', onToolResult);
 
     return () => {
@@ -46,6 +67,7 @@ export function useEngine(engine: GameEngine, agentLoop: AgentLoop) {
       engine.events.off('engine:play', onPlay);
       engine.events.off('engine:pause', onPause);
       engine.events.off('ai:stream', onStream);
+      engine.events.off('ai:tool_call', onToolCall);
       engine.events.off('ai:tool_result', onToolResult);
     };
   }, [engine]);

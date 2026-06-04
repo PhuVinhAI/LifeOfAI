@@ -1,6 +1,7 @@
 import type { World, Entity, InteractionResult } from '../types/index.js';
 import type { TraitRegistry } from './trait-registry.js';
 import type { ObjectState } from '../plugins/core-life/components/object-state.js';
+import { getLogger } from './logger.js';
 
 export class CapabilityResolver {
   constructor(private registry: TraitRegistry) {}
@@ -17,14 +18,18 @@ export class CapabilityResolver {
     params: Record<string, unknown> | undefined,
     world: World
   ): InteractionResult {
+    const log = getLogger();
+
     // Find the target object entity by name
     const target = this.findObjectByName(world, objectName);
     if (!target) {
+      log.warn('interaction', `Object not found: ${objectName}`, { user: user.id, action });
       return { success: false, message: `Không tìm thấy "${objectName}" trong phòng.` };
     }
 
     const objectState = target.components.get('object_state') as ObjectState | undefined;
     if (!objectState) {
+      log.warn('interaction', `Object has no state: ${objectName}`, { user: user.id, action });
       return { success: false, message: `"${objectName}" không thể tương tác.` };
     }
 
@@ -38,6 +43,7 @@ export class CapabilityResolver {
     if (!match) {
       const allCapabilities = traitNames
         .flatMap(n => this.registry.get(n)?.capabilities ?? []);
+      log.warn('interaction', `Action not supported`, { object: objectName, action, available: [...new Set(allCapabilities)] });
       return {
         success: false,
         message: `"${objectName}" không hỗ trợ hành động "${action}". Khả dụng: ${[...new Set(allCapabilities)].join(', ')}.`,
@@ -46,6 +52,9 @@ export class CapabilityResolver {
 
     // Execute the interaction through the trait
     const result = this.registry.executeInteraction(match.traitName, target, action, user, params, world);
+    log.info('interaction', `${user.id} → ${objectName}.${action} (${match.traitName})`, {
+      user: user.id, object: objectName, action, trait: match.traitName, params, success: result.success, message: result.message,
+    });
 
     // Transition FSM state based on result
     if (result.success) {

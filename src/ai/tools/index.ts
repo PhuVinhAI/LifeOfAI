@@ -3,6 +3,8 @@ import { CapabilityResolver } from '../../core/capability-resolver.js';
 import { createInteractTool } from './interact.js';
 import { createLookAroundTool } from './look-around.js';
 import { createCheckSelfTool } from './check-self.js';
+import { createConsumeTool } from './consume.js';
+import { createCheckInventoryTool } from './check-inventory.js';
 
 export function createToolRegistry(
   resolver: CapabilityResolver,
@@ -13,5 +15,7 @@ export function createToolRegistry(
     createInteractTool(resolver, world, agentId),
     createLookAroundTool(resolver, world, agentId),
     createCheckSelfTool(world, agentId),
-  ] as any; // openai SDK zodFunction types are complex — cast for MVP
+    createConsumeTool(world, agentId),
+    createCheckInventoryTool(world, agentId),
+  ] as any;
 }
