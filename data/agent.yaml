@@ -1,0 +1,13 @@
+# Agent MVP
+name: "Minh"
+age: 25
+bio: "Lập trình viên 25 tuổi, sống một mình trong căn hộ studio. Hướng nội, thích chơi game và nấu ăn."
+startX: 5
+startY: 4
+needs:
+  hunger: 75
+  thirst: 80
+  energy: 60
+  bladder: 70
+  hygiene: 85
+  fun: 40

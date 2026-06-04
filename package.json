@@ -1,0 +1,41 @@
+{
+  "name": "lifeofai",
+  "version": "0.1.0",
+  "description": "Life simulation with AI agents living in a room",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "ai",
+    "simulation",
+    "agent",
+    "life-sim"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ink": "^7.0.5",
+    "openai": "^6.42.0",
+    "react": "^19.2.7",
+    "sim-ecs": "^0.6.4",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@copilotkit/aimock": "^1.29.0",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.16",
+    "ink-testing-library": "^4.0.0",
+    "node-pty": "^1.1.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

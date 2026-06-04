@@ -1,0 +1,81 @@
+# Phòng MVP — 1 căn hộ studio
+id: "room_01"
+name: "Căn hộ Studio"
+width: 10
+height: 8
+
+objects:
+  - name: "Tủ lạnh"
+    x: 0
+    y: 0
+    traits: [usable, breakable, container]
+    traitConfig:
+      container:
+        slots: 10
+        accepts: [food, drink]
+      containerData:
+        items:
+          - { name: "Pizza", quantity: 2 }
+          - { name: "Nước suối", quantity: 3 }
+          - { name: "Mì gói", quantity: 5 }
+
+  - name: "Bếp"
+    x: 1
+    y: 0
+    traits: [usable, breakable, cleanable]
+
+  - name: "Bàn ăn"
+    x: 2
+    y: 1
+    traits: [usable, cleanable]
+
+  - name: "Ghế"
+    x: 2
+    y: 2
+    traits: [usable]
+
+  - name: "Giường"
+    x: 6
+    y: 3
+    traits: [usable, cleanable, need_provider]
+    traitConfig:
+      need_provider:
+        need: energy
+        value: 40
+        duration: 3
+        cooldown: 1
+      usable:
+        cooldown: 0
+
+  - name: "Toilet"
+    x: 8
+    y: 0
+    traits: [usable, cleanable, breakable, need_provider]
+    traitConfig:
+      need_provider:
+        need: bladder
+        value: 50
+        duration: 1
+        cooldown: 2
+
+  - name: "Vòi sen"
+    x: 9
+    y: 0
+    traits: [usable, cleanable, breakable, need_provider]
+    traitConfig:
+      need_provider:
+        need: hygiene
+        value: 50
+        duration: 2
+        cooldown: 1
+
+  - name: "TV"
+    x: 4
+    y: 0
+    traits: [usable, breakable, need_provider]
+    traitConfig:
+      need_provider:
+        need: fun
+        value: 30
+        duration: 2
+        cooldown: 1
