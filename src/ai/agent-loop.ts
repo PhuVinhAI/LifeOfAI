@@ -7,6 +7,8 @@ import { createToolRegistry } from './tools/index.js';
 import { getLogger } from '../core/logger.js';
 import type { Needs } from '../plugins/core-life/components/needs.js';
 import type { Identity } from '../plugins/core-life/components/identity.js';
+import type { Inventory } from '../plugins/core-life/components/inventory.js';
+import type { ContainerMemory } from '../plugins/core-life/components/container-memory.js';
 import type { IEventBus } from '../types/index.js';
 
 export interface AgentConfig {
@@ -18,6 +20,7 @@ export interface AgentConfig {
   model?: string;
   advanceTime: (minutes: number) => string;
   getTimeString: () => string;
+  getElapsedMinutes: () => number;
 }
 
 export class AgentLoop {
@@ -30,6 +33,7 @@ export class AgentLoop {
   private model: string;
   private advanceTime: (minutes: number) => string;
   private getTimeString: () => string;
+  private getElapsedMinutes: () => number;
   private running = false;
   private abortController: AbortController | null = null;
 
@@ -43,6 +47,7 @@ export class AgentLoop {
     this.model = config.model ?? 'gpt-4o';
     this.advanceTime = config.advanceTime;
     this.getTimeString = config.getTimeString;
+    this.getElapsedMinutes = config.getElapsedMinutes;
   }
 
   async start(): Promise<void> {
@@ -107,8 +112,10 @@ export class AgentLoop {
     });
 
     const roomDesc = this.resolver.describeRoom(this.world);
+    const inventory = agent.components.get('inventory') as Inventory | undefined;
+    const containerMem = agent.components.get('container_memory') as ContainerMemory | undefined;
 
-    const systemPrompt = buildSystemPrompt(identity, needs, roomDesc, timeStr);
+    const systemPrompt = buildSystemPrompt(identity, needs, roomDesc, timeStr, inventory, containerMem);
 
     const messages = this.memory.getAll();
     if (messages.length === 0) {
@@ -127,7 +134,9 @@ export class AgentLoop {
       contextMsg,
     });
 
-    const tools = createToolRegistry(this.resolver, this.world, this.agentId);
+    const tools = createToolRegistry(this.resolver, this.world, this.agentId, {
+      getElapsedMinutes: this.getElapsedMinutes,
+    });
 
     // Separator between turns so streamed thoughts don't stick together
     if (this.memory.getAll().length > 0) {

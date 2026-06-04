@@ -5,7 +5,6 @@ interface NeedProviderConfig {
   need: keyof Omit<Needs, 'type'>;
   value: number;
   duration: number;   // minutes
-  cooldown: number;   // minutes before reuse
 }
 
 export const NeedProviderTrait: TraitDefinition = {
@@ -13,23 +12,14 @@ export const NeedProviderTrait: TraitDefinition = {
   capabilities: ['use'],
   initialState: 'ready',
 
+  // No cooldown — AI có thể dùng lại ngay sau khi xong.
   transitions: {
-    ready:    { use: 'in_use' },
-    in_use:   { finish: 'cooldown', cancel: 'ready' },
-    cooldown: { tick: 'ready' },
+    ready: { use: 'ready' },
   },
 
   onInteract(entity: Entity, action: string, user: Entity, _params: Record<string, unknown> | undefined, _world: World): InteractionResult {
     if (action !== 'use') {
       return { success: false, message: `Hành động "${action}" không khả dụng.` };
-    }
-
-    const state = getState(entity);
-    if (state === 'in_use') {
-      return { success: false, message: `${entity.id} đang được dùng.` };
-    }
-    if (state === 'cooldown') {
-      return { success: false, message: `${entity.id} chưa sẵn sàng, đợi một chút.` };
     }
 
     const config = getConfig(entity);
@@ -42,7 +32,6 @@ export const NeedProviderTrait: TraitDefinition = {
       }
     }
 
-    setState(entity, 'in_use');
     return {
       success: true,
       message: `Đã dùng ${entity.id}. Cảm thấy ${getNeedLabel(config.need).toLowerCase()} đã được cải thiện.`,
@@ -53,33 +42,13 @@ export const NeedProviderTrait: TraitDefinition = {
     };
   },
 
-  tick(entity: Entity, _world: World, _delta: number): void {
-    const state = getState(entity);
-    if (state === 'in_use') {
-      // Auto-finish after 1 tick for MVP (can be extended with duration tracking)
-      setState(entity, 'cooldown');
-    } else if (state === 'cooldown') {
-      // Toggle back to ready next tick
-      setState(entity, 'ready');
-    }
-  },
+  // No tick logic needed — state always 'ready'.
 };
-
-function getState(entity: Entity): string {
-  const os = entity.components.get('object_state');
-  if (os && 'traits' in os) return (os as any).traits['need_provider'] ?? 'ready';
-  return 'ready';
-}
-
-function setState(entity: Entity, s: string): void {
-  const os = entity.components.get('object_state');
-  if (os && 'traits' in os) (os as any).traits['need_provider'] = s;
-}
 
 function getConfig(entity: Entity): NeedProviderConfig {
   const os = entity.components.get('object_state');
-  if (os && 'traitConfig' in os) return (os as any).traitConfig?.need_provider ?? { need: 'fun', value: 20, duration: 1, cooldown: 2 };
-  return { need: 'fun', value: 20, duration: 1, cooldown: 2 };
+  if (os && 'traitConfig' in os) return (os as any).traitConfig?.need_provider ?? { need: 'fun', value: 20, duration: 1 };
+  return { need: 'fun', value: 20, duration: 1 };
 }
 
 function getNeedLabel(need: string): string {

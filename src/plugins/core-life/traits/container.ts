@@ -1,8 +1,10 @@
 import type { TraitDefinition, InteractionResult, Entity, World } from '../../../types/index.js';
+import { buildInventoryItem, getItemType } from '../items.js';
+import { recordSeen, type ContainerMemory } from '../components/container-memory.js';
 
 interface ContainerConfig {
   slots: number;
-  accepts: string[];
+  accepts: string[];   // có thể là tên item ("Mì gói") hoặc type ("food")
 }
 
 interface ContainerData {
@@ -11,7 +13,7 @@ interface ContainerData {
 
 export const ContainerTrait: TraitDefinition = {
   name: 'container',
-  capabilities: ['open', 'take', 'put'],
+  capabilities: ['open', 'close', 'take', 'put'],
   initialState: 'closed',
 
   transitions: {
@@ -27,7 +29,12 @@ export const ContainerTrait: TraitDefinition = {
       case 'open': {
         setState(entity, 'open');
         const itemList = items.map(i => `${i.name} (x${i.quantity})`).join(', ') || 'trống';
+        rememberContents(_user, entity.id, items);
         return { success: true, message: `Mở ${entity.id}. Bên trong: ${itemList}.`, duration: 1 };
+      }
+      case 'close': {
+        setState(entity, 'closed');
+        return { success: true, message: `Đã đóng ${entity.id}.`, duration: 1 };
       }
       case 'take': {
         if (getState(entity) !== 'open') {
@@ -44,6 +51,7 @@ export const ContainerTrait: TraitDefinition = {
         items[idx]!.quantity--;
         if (items[idx]!.quantity <= 0) items.splice(idx, 1);
         saveItems(entity, items);
+        rememberContents(_user, entity.id, items);
 
         // Add to user's inventory
         const inv = _user.components.get('inventory');
@@ -72,7 +80,7 @@ export const ContainerTrait: TraitDefinition = {
         if (!putName) {
           return { success: false, message: 'Phải chỉ định món đồ muốn để vào.' };
         }
-        if (config.accepts.length > 0 && !config.accepts.some(a => putName.includes(a))) {
+        if (!accepts(config.accepts, putName)) {
           return { success: false, message: `Không thể để "${putName}" vào ${entity.id}.` };
         }
         if (items.length >= config.slots) {
@@ -82,6 +90,18 @@ export const ContainerTrait: TraitDefinition = {
         if (existing) existing.quantity++;
         else items.push({ name: putName, quantity: 1 });
         saveItems(entity, items);
+        rememberContents(_user, entity.id, items);
+
+        // Remove from user inventory
+        const inv = _user.components.get('inventory');
+        if (inv && inv.type === 'inventory') {
+          const invAny = inv as any;
+          const idx = invAny.items.findIndex((i: any) => i.name === putName);
+          if (idx !== -1) {
+            invAny.items[idx].quantity--;
+            if (invAny.items[idx].quantity <= 0) invAny.items.splice(idx, 1);
+          }
+        }
         return { success: true, message: `Để "${putName}" vào ${entity.id}.`, duration: 2 };
       }
       default:
@@ -120,21 +140,21 @@ function getConfig(entity: Entity): ContainerConfig {
   return { slots: 20, accepts: ['food', 'drink'] };
 }
 
-// Built-in food/drink database — maps item name to consumption effects
-const ITEM_DB: Record<string, { type: 'food' | 'drink' | 'misc'; needRestore?: { need: string; value: number } }> = {
-  'Pizza':       { type: 'food',  needRestore: { need: 'hunger', value: 40 } },
-  'Mì gói':      { type: 'food',  needRestore: { need: 'hunger', value: 25 } },
-  'Cơm':         { type: 'food',  needRestore: { need: 'hunger', value: 35 } },
-  'Bánh mì':     { type: 'food',  needRestore: { need: 'hunger', value: 20 } },
-  'Nước suối':   { type: 'drink', needRestore: { need: 'thirst', value: 40 } },
-  'Cà phê':      { type: 'drink', needRestore: { need: 'thirst', value: 30 } },
-  'Trà':         { type: 'drink', needRestore: { need: 'thirst', value: 35 } },
-};
+/**
+ * `accepts` list can mix item TYPES ("food", "drink", "dishware") with specific
+ * item names. Match wins if either applies. Empty list = accept anything.
+ */
+function rememberContents(user: Entity, containerId: string, items: Array<{ name: string; quantity: number }>): void {
+  const mem = user.components.get('container_memory') as ContainerMemory | undefined;
+  if (mem) recordSeen(mem, containerId, items);
+}
 
-function buildInventoryItem(name: string): { name: string; quantity: number; type: 'food' | 'drink' | 'misc'; needRestore?: { need: string; value: number } } {
-  const meta = ITEM_DB[name];
-  if (meta) {
-    return { name, quantity: 1, type: meta.type, ...(meta.needRestore && { needRestore: meta.needRestore }) };
+function accepts(rules: string[], itemName: string): boolean {
+  if (!rules || rules.length === 0) return true;
+  const itemType = getItemType(itemName);
+  for (const rule of rules) {
+    if (rule === itemName) return true;
+    if (rule === itemType) return true;
   }
-  return { name, quantity: 1, type: 'misc' };
+  return false;
 }

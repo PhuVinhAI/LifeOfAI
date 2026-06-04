@@ -55,6 +55,12 @@ export class GameClock {
     return minutes;
   }
 
+  /** Total absolute minute count since year 0 — monotonic, useful for caches. */
+  toTotalMinutes(): number {
+    return ((this.year * 12 + (this.month - 1)) * 31 + (this.day - 1)) * 24 * 60
+      + this.hour * 60 + this.minute;
+  }
+
   formatTime(): string {
     const h = String(this.hour).padStart(2, '0');
     const m = String(this.minute).padStart(2, '0');

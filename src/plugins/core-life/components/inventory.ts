@@ -1,10 +1,11 @@
 import type { Component } from '../../../types/index.js';
+import type { ItemType } from '../items.js';
 
 export interface InventoryItem {
   name: string;
   quantity: number;
-  type: 'food' | 'drink' | 'misc';   // category for consumption
-  needRestore?: { need: string; value: number };  // when eaten/drunk
+  type: ItemType;
+  needRestore?: { need: string; value: number };
 }
 
 export interface Inventory extends Component {

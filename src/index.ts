@@ -23,6 +23,7 @@ import { createObjectState } from './plugins/core-life/components/object-state.j
 import { createInventory } from './plugins/core-life/components/inventory.js';
 import { createGoalComponent } from './plugins/core-life/components/goal.js';
 import { createTaskListComponent } from './plugins/core-life/components/task-list.js';
+import { createContainerMemory } from './plugins/core-life/components/container-memory.js';
 
 import type { RoomConfig, AgentConfig } from './types/index.js';
 
@@ -103,7 +104,7 @@ async function main() {
   const identity = createIdentity(agentConfig.name, agentConfig.age, agentConfig.bio);
   const pos = createPosition(agentConfig.startX, agentConfig.startY, roomConfig.id);
 
-  engine.world.spawnEntity(agentId, [needs, identity, pos, createInventory(10), createGoalComponent(), createTaskListComponent()]);
+  engine.world.spawnEntity(agentId, [needs, identity, pos, createInventory(10), createGoalComponent(), createTaskListComponent(), createContainerMemory()]);
 
   // 6. Init AI — supports any OpenAI-compatible provider via OPENAI_BASE_URL
   const apiKey = process.env.OPENAI_API_KEY;
@@ -134,6 +135,7 @@ async function main() {
       return engine.clock.formatTime();
     },
     getTimeString: () => engine.clock.formatFull(),
+    getElapsedMinutes: () => engine.clock.toTotalMinutes(),
   });
 
   // 7. Render CLI

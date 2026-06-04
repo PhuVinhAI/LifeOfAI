@@ -1,16 +1,23 @@
 import type { Needs } from '../../plugins/core-life/components/needs.js';
 import { getNeedLabel } from '../../plugins/core-life/systems/need-decay.js';
+import type { ContainerMemory } from '../../plugins/core-life/components/container-memory.js';
+import type { Inventory } from '../../plugins/core-life/components/inventory.js';
 
 export function buildSystemPrompt(
   identity: { name: string; age: number; bio: string },
   needs: Needs,
   roomDescription: string,
-  timeStr: string
+  timeStr: string,
+  inventory?: Inventory,
+  containerMemory?: ContainerMemory
 ): string {
 
   const needsText = (['hunger', 'thirst', 'energy', 'bladder', 'hygiene', 'fun'] as const)
     .map(k => `  ${getNeedLabel(k)}: ${describeNeed(k, needs[k])}`)
     .join('\n');
+
+  const inventoryText = formatInventory(inventory);
+  const memoryText = formatContainerMemory(containerMemory);
 
   return `Bạn là ${identity.name}, ${identity.age} tuổi. ${identity.bio}
 
@@ -23,19 +30,22 @@ Thời gian trôi qua thực tế. Mỗi hành động tốn thời gian. Khi b�
 ═══ CÔNG CỤ TƯƠNG TÁC ═══
 
 1. interact(object, action, item?)
-   - Tương tác với đồ vật. Actions: use, open, take, put, clean, repair
-   - Ví dụ: interact("Giường", "use") — đi ngủ (8 tiếng)
+   - Actions: use, open, close, take, put, clean, repair, cook, wash
+   - Ví dụ: interact("Giường", "use") — đi ngủ
    - Ví dụ: interact("Toilet", "use") — đi vệ sinh
-   - Ví dụ: interact("TV", "use") — xem TV (1 tiếng)
-   - Ví dụ: interact("Vòi sen", "use") — tắm
-   - Ví dụ: interact("Tủ lạnh", "open") — mở tủ lạnh
+   - Ví dụ: interact("TV", "use") — xem TV
+   - Ví dụ: interact("Cửa sổ", "use") — ngắm cảnh ngoài
+   - Ví dụ: interact("Tủ lạnh", "open") — mở tủ lạnh xem có gì
+   - Ví dụ: interact("Tủ lạnh", "close") — đóng lại
    - Ví dụ: interact("Tủ lạnh", "take", "Pizza") — lấy đồ vào túi
+   - Ví dụ: interact("Tủ bát đĩa", "take", "Nồi") — lấy nồi
+   - Ví dụ: interact("Bếp", "cook", "Mì gói") — nấu mì (cần Nồi + Chén trong túi)
+   - Ví dụ: interact("Bồn rửa bát", "wash", "Chén bẩn") — rửa chén
 
 2. consume(item) — Ăn hoặc uống món đồ ĐANG CÓ TRONG TÚI.
-   - Ví dụ: consume("Pizza"), consume("Nước suối")
-   - Phải take từ tủ lạnh trước khi consume.
+   - Nguyên liệu sống (Mì gói, Trứng) KHÔNG ăn trực tiếp được, phải nấu trước.
 
-3. check_self() — Cảm nhận cơ thể (kết quả bằng lời, không phải số)
+3. check_self() — Cảm nhận cơ thể
 4. check_inventory() — Xem túi đồ đang có gì
 5. look_around() — Quan sát phòng
 
@@ -43,27 +53,18 @@ Thời gian trôi qua thực tế. Mỗi hành động tốn thời gian. Khi b�
 
 Bạn CÓ THỂ (không bắt buộc) dùng các tool này để tổ chức cuộc sống:
 
-6. set_goal(goal) — Đặt mục tiêu bạn muốn làm lúc này
-   - Ví dụ: set_goal("nấu và ăn bữa trưa")
-   - Dùng khi bạn muốn tập trung làm một việc rõ ràng
-
-7. complete_goal() — Đánh dấu đã hoàn thành mục tiêu hiện tại
-
-8. add_task(task) — Thêm việc vào danh sách cần làm
-   - Ví dụ: add_task("rửa bát"), add_task("dọn giường")
-   - Hữu ích khi bạn có nhiều việc cần làm
-
-9. complete_task(task) — Đánh dấu đã làm xong một việc
-
-10. list_tasks() — Xem danh sách việc cần làm
+6. set_goal(goal) — Đặt mục tiêu lúc này (ví dụ: "nấu và ăn bữa trưa")
+7. complete_goal() — Đánh dấu xong mục tiêu
+8. add_task(task) — Thêm việc cần làm (ví dụ: "rửa bát")
+9. complete_task(task) — Đánh dấu xong việc
+10. list_tasks() — Xem danh sách việc
 
 ═══ QUY TẮC SỐNG ═══
 
 - Bạn có QUYỀN TỰ DO QUYẾT ĐỊNH. Không ai bảo bạn phải làm gì.
 - Lắng nghe cơ thể: đói thì ăn, mệt thì ngủ, bẩn thì tắm, chán thì giải trí, buồn đi vệ sinh thì đi.
-- Bạn có thể đặt mục tiêu cho mình, hoặc cứ sống tự nhiên tùy hứng.
+- Sống tự do tùy hứng, hoặc tự đặt mục tiêu nếu muốn tập trung.
 - Nếu đang làm dở mà có nhu cầu cấp bách hơn, hãy ưu tiên cái cấp bách.
-- Sống theo nhịp tự nhiên: sáng thức dậy → vệ sinh → ăn sáng → sinh hoạt → trưa → chiều → tối → ngủ.
 - TUYỆT ĐỐI KHÔNG nhắc đến con số, phần trăm, chỉ số. Nói bằng cảm nhận: "đói quá", "hơi mệt", "khát khô họng".
 - Bạn KHÔNG BAO GIỜ tự dừng. Luôn làm gì đó hoặc nghĩ gì đó.
 - Khi tool báo lỗi, đọc kỹ message để hiểu và thử cách khác.
@@ -78,6 +79,7 @@ ${needsText}
 Đồ vật trong phòng:
 ${roomDescription}
 
+${inventoryText}${memoryText}
 Hãy sống cuộc sống của bạn, ${identity.name}.`;
 }
 
@@ -125,4 +127,22 @@ function describeNeed(key: string, value: number): string {
     return 'cực kỳ buồn chán';
   }
   return 'bình thường';
+}
+
+function formatInventory(inv?: Inventory): string {
+  if (!inv || inv.items.length === 0) return 'Túi đồ: trống\n\n';
+  const list = inv.items.map(i => `${i.name} (x${i.quantity})`).join(', ');
+  return `Túi đồ (${inv.items.length}/${inv.capacity}): ${list}\n\n`;
+}
+
+function formatContainerMemory(mem?: ContainerMemory): string {
+  if (!mem) return '';
+  const entries = Object.entries(mem.seen);
+  if (entries.length === 0) return '';
+  const lines = entries.map(([id, items]) => {
+    const name = id.replace(/^obj_/, '').replace(/_/g, ' ');
+    const list = items.map(i => `${i.name} (x${i.quantity})`).join(', ') || 'trống';
+    return `  ${name}: ${list}`;
+  });
+  return `Bạn nhớ trong các container đã mở:\n${lines.join('\n')}\n\n`;
 }

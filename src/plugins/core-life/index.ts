@@ -4,6 +4,8 @@ import { CleanableTrait } from './traits/cleanable.js';
 import { BreakableTrait } from './traits/breakable.js';
 import { ContainerTrait } from './traits/container.js';
 import { NeedProviderTrait } from './traits/need-provider.js';
+import { CookableTrait } from './traits/cookable.js';
+import { WashableTrait } from './traits/washable.js';
 import { needDecaySystem } from './systems/need-decay.js';
 import { interactionSystem } from './systems/interaction.js';
 
@@ -17,6 +19,8 @@ export const coreLifePlugin: Plugin = {
     BreakableTrait,
     ContainerTrait,
     NeedProviderTrait,
+    CookableTrait,
+    WashableTrait,
   ],
   components: [
     { name: 'needs', schema: {} },
@@ -25,6 +29,7 @@ export const coreLifePlugin: Plugin = {
     { name: 'object_state', schema: {} },
     { name: 'goal', schema: {} },
     { name: 'task_list', schema: {} },
+    { name: 'container_memory', schema: {} },
   ],
   systemFns: [needDecaySystem, interactionSystem],
 };

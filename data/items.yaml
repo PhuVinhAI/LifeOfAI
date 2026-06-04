@@ -1,0 +1,76 @@
+# Định nghĩa các vật phẩm tương tác trong game.
+# - type: phân loại — quyết định AI có thể consume/cook/etc.
+#     food      → có thể consume, restore hunger
+#     drink     → có thể consume, restore thirst
+#     ingredient→ chưa ăn được, cần nấu thành food trước
+#     cookware  → dụng cụ nấu (nồi, chảo); cần khi cook
+#     dishware  → đồ đựng (chén, đĩa); cần khi cook để chứa food nóng
+#     misc      → đồ thường, không ăn được
+# - needRestore: nhu cầu được khôi phục khi consume
+# - cooked_form: tên item kết quả sau khi nấu (chỉ dành cho ingredient)
+# - clean_to: tên item sau khi rửa (nếu là dishware bẩn)
+
+items:
+  # ── Đồ ăn liền ──
+  Pizza:
+    type: food
+    needRestore: { need: hunger, value: 40 }
+
+  Bánh mì:
+    type: food
+    needRestore: { need: hunger, value: 20 }
+
+  Cơm:
+    type: food
+    needRestore: { need: hunger, value: 35 }
+
+  # ── Đồ uống ──
+  Nước suối:
+    type: drink
+    needRestore: { need: thirst, value: 40 }
+
+  Cà phê:
+    type: drink
+    needRestore: { need: thirst, value: 30 }
+
+  Trà:
+    type: drink
+    needRestore: { need: thirst, value: 35 }
+
+  # ── Nguyên liệu cần nấu ──
+  Mì gói:
+    type: ingredient
+    cooked_form: Mì nóng
+
+  Trứng:
+    type: ingredient
+    cooked_form: Trứng ốp la
+
+  # ── Đồ ăn đã nấu ──
+  Mì nóng:
+    type: food
+    needRestore: { need: hunger, value: 50 }
+
+  Trứng ốp la:
+    type: food
+    needRestore: { need: hunger, value: 30 }
+
+  # ── Dụng cụ nấu ──
+  Nồi:
+    type: cookware
+
+  Chảo:
+    type: cookware
+
+  # ── Đồ đựng ──
+  Chén:
+    type: dishware
+    clean_to: Chén
+
+  Chén bẩn:
+    type: dishware
+    clean_to: Chén
+
+  Đĩa:
+    type: dishware
+    clean_to: Đĩa

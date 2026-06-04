@@ -5,6 +5,7 @@ width: 10
 height: 8
 
 objects:
+  # ── Khu bếp (hàng trên cùng) ──
   - name: "Tủ lạnh"
     x: 0
     y: 0
@@ -12,70 +13,99 @@ objects:
     traitConfig:
       container:
         slots: 10
-        accepts: [food, drink]
+        accepts: [food, drink, ingredient]
       containerData:
         items:
           - { name: "Pizza", quantity: 2 }
-          - { name: "Nước suối", quantity: 3 }
+          - { name: "Nước suối", quantity: 5 }
           - { name: "Mì gói", quantity: 5 }
+          - { name: "Trứng", quantity: 6 }
+          - { name: "Bánh mì", quantity: 3 }
 
   - name: "Bếp"
     x: 1
     y: 0
-    traits: [usable, breakable, cleanable]
+    traits: [usable, breakable, cleanable, cookable]
 
-  - name: "Bàn ăn"
+  - name: "Bồn rửa bát"
     x: 2
-    y: 1
-    traits: [usable, cleanable]
-
-  - name: "Ghế"
-    x: 2
-    y: 2
-    traits: [usable]
-
-  - name: "Giường"
-    x: 6
-    y: 3
-    traits: [usable, cleanable, need_provider]
-    traitConfig:
-      need_provider:
-        need: energy
-        value: 100
-        duration: 480   # 8 tiếng ngủ
-        cooldown: 60
-      usable:
-        cooldown: 0
-
-  - name: "Toilet"
-    x: 8
     y: 0
-    traits: [usable, cleanable, breakable, need_provider]
-    traitConfig:
-      need_provider:
-        need: bladder
-        value: 100
-        duration: 10    # 10 phút
-        cooldown: 5
+    traits: [usable, washable]
 
-  - name: "Vòi sen"
-    x: 9
+  - name: "Tủ bát đĩa"
+    x: 3
     y: 0
-    traits: [usable, cleanable, breakable, need_provider]
+    traits: [usable, container]
     traitConfig:
-      need_provider:
-        need: hygiene
-        value: 80
-        duration: 20    # 20 phút tắm
-        cooldown: 10
+      container:
+        slots: 12
+        accepts: [cookware, dishware]
+      containerData:
+        items:
+          - { name: "Nồi", quantity: 1 }
+          - { name: "Chảo", quantity: 1 }
+          - { name: "Chén", quantity: 4 }
+          - { name: "Đĩa", quantity: 3 }
 
+  # ── Khu giải trí ──
   - name: "TV"
-    x: 4
+    x: 5
     y: 0
     traits: [usable, breakable, need_provider]
     traitConfig:
       need_provider:
         need: fun
         value: 40
-        duration: 60    # 1 tiếng xem TV
-        cooldown: 15
+        duration: 60     # 1 tiếng xem TV
+
+  - name: "Cửa sổ"
+    x: 7
+    y: 0
+    traits: [usable, need_provider]
+    traitConfig:
+      need_provider:
+        need: fun
+        value: 15        # ngắm cảnh, vui nhẹ
+        duration: 10
+
+  # ── Khu vệ sinh ──
+  - name: "Toilet"
+    x: 9
+    y: 0
+    traits: [usable, cleanable, breakable, need_provider]
+    traitConfig:
+      need_provider:
+        need: bladder
+        value: 100
+        duration: 10
+
+  - name: "Vòi sen"
+    x: 9
+    y: 1
+    traits: [usable, cleanable, breakable, need_provider]
+    traitConfig:
+      need_provider:
+        need: hygiene
+        value: 80
+        duration: 20
+
+  # ── Khu ăn uống / nghỉ ngơi ──
+  - name: "Bàn ăn"
+    x: 3
+    y: 3
+    traits: [usable, cleanable]
+
+  - name: "Ghế"
+    x: 3
+    y: 4
+    traits: [usable]
+
+  - name: "Giường"
+    x: 6
+    y: 5
+    traits: [usable, cleanable, need_provider]
+    traitConfig:
+      need_provider:
+        need: energy
+        value: 100
+        duration: 480    # 8 tiếng ngủ

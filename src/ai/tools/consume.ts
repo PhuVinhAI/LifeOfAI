@@ -28,6 +28,9 @@ export function createConsumeTool(world: World, agentId: string) {
       }
 
       const item = inv.items[idx]!;
+      if (item.type === 'ingredient') {
+        return { success: false, message: `"${input.item}" là nguyên liệu sống, cần nấu ở Bếp trước khi ăn.` };
+      }
       if (item.type !== 'food' && item.type !== 'drink') {
         return { success: false, message: `"${input.item}" không thể ăn/uống được.` };
       }

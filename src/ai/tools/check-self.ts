@@ -12,10 +12,17 @@ function describeLevel(value: number): string {
   return 'rất tệ, cần giải quyết gấp';
 }
 
-export function createCheckSelfTool(world: World, agentId: string) {
+interface TurnContext {
+  getElapsedMinutes: () => number;
+}
+
+const CACHE_WINDOW_MIN = 5;
+const lastSnapshot = new Map<string, { atMinute: number; payload: unknown }>();
+
+export function createCheckSelfTool(world: World, agentId: string, ctx?: TurnContext) {
   return zodFunction({
     name: 'check_self',
-    description: 'Cảm nhận tình trạng cơ thể hiện tại. Kết quả trả về bằng mô tả tự nhiên, không phải con số.',
+    description: 'Cảm nhận tình trạng cơ thể. Kết quả là mô tả tự nhiên, không phải con số.',
     parameters: z.object({}),
     function: async () => {
       const agent = world.getEntity(agentId);
@@ -24,11 +31,24 @@ export function createCheckSelfTool(world: World, agentId: string) {
       const needs = agent.components.get('needs') as Needs | undefined;
       if (!needs) return { error: 'Không có dữ liệu chỉ số.' };
 
+      // De-dup: if called within CACHE_WINDOW_MIN of last call, append a hint.
+      const elapsed = ctx?.getElapsedMinutes?.() ?? 0;
+      const prev = lastSnapshot.get(agentId);
+      const veryRecent = prev !== undefined && elapsed - prev.atMinute < CACHE_WINDOW_MIN;
+
       const status: Record<string, string> = {};
       for (const key of ['hunger', 'thirst', 'energy', 'bladder', 'hygiene', 'fun'] as const) {
         status[getNeedLabel(key)] = describeLevel(needs[key]);
       }
-      return { message: 'Cảm nhận cơ thể hiện tại:', status };
+
+      const result = {
+        message: veryRecent
+          ? 'Cảm nhận cơ thể (vừa kiểm tra, gần như không đổi):'
+          : 'Cảm nhận cơ thể hiện tại:',
+        status,
+      };
+      lastSnapshot.set(agentId, { atMinute: elapsed, payload: result });
+      return result;
     },
   });
 }
