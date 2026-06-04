@@ -2,7 +2,6 @@ import OpenAI from 'openai';
 import { CapabilityResolver } from '../core/capability-resolver.js';
 import { WorldImpl } from '../core/ecs.js';
 import { MemoryManager } from './memory.js';
-import { selectGoal } from './goal-selector.js';
 import { buildSystemPrompt } from './prompts/system.js';
 import { createToolRegistry } from './tools/index.js';
 import { getLogger } from '../core/logger.js';
@@ -100,12 +99,9 @@ export class AgentLoop {
       return;
     }
 
-    const goal = selectGoal(needs);
     const timeStr = this.getTimeString();
     log.debug('agent-loop', 'Turn started', {
       agentId: this.agentId,
-      goal: goal.goal,
-      urgency: goal.urgency,
       time: timeStr,
       needs: { ...needs, type: undefined },
     });
@@ -121,7 +117,7 @@ export class AgentLoop {
       messages[0] = { role: 'system', content: systemPrompt };
     }
 
-    const contextMsg = buildContextMessage(needs, goal, timeStr);
+    const contextMsg = `[${timeStr}] Bạn cảm thấy thế nào? Bạn muốn làm gì lúc này?`;
     messages.push({ role: 'user', content: contextMsg });
 
     log.debug('agent-loop', 'Sending request to model', {
@@ -182,12 +178,12 @@ export class AgentLoop {
           const callId = result?.tool_call_id ?? result?.id ?? '';
           const tracked = toolCallMap.get(callId);
           const name = tracked?.name ?? result?.name ?? 'unknown';
-          let value = result?.result ?? result?.content ?? result;
+          let rawResult = result?.result ?? result?.content ?? result;
 
-          // Parse result to extract duration
-          let parsed: any = value;
-          if (typeof value === 'string') {
-            try { parsed = JSON.parse(value); } catch {}
+          // Parse result to extract duration and message
+          let parsed: any = rawResult;
+          if (typeof rawResult === 'string') {
+            try { parsed = JSON.parse(rawResult); } catch {}
           }
           const duration = parsed?.duration ?? 0;
 
@@ -195,15 +191,17 @@ export class AgentLoop {
           if (duration > 0) {
             totalActionDuration += duration;
             const newTime = this.advanceTime(duration);
-            // Append time info to result message so AI sees time progression
             if (parsed?.message) {
               parsed.message = `${parsed.message} (⏱ ${duration} phút → ${newTime})`;
-              value = JSON.stringify(parsed);
             }
           }
 
-          log.info('tool-result', `${name} returned`, { agentId: this.agentId, tool: name, result: value });
-          this.events.emit('ai:tool_result', this.agentId, name, value);
+          // Only send natural message to AI — strip internal data
+          const aiMessage = parsed?.message ?? (typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+          const fullResult = typeof parsed === 'object' ? JSON.stringify(parsed) : String(rawResult);
+
+          log.info('tool-result', `${name} returned`, { agentId: this.agentId, tool: name, result: fullResult });
+          this.events.emit('ai:tool_result', this.agentId, name, aiMessage);
         });
 
       const final = await runner.finalChatCompletion();
@@ -238,17 +236,3 @@ export class AgentLoop {
   }
 }
 
-function buildContextMessage(needs: Needs, goal: { label: string; urgency: number }, timeStr: string): string {
-  const criticals: string[] = [];
-  if (needs.hunger < 20) criticals.push('ĐÓI TRẦM TRỌNG');
-  if (needs.thirst < 20) criticals.push('KHÁT NGHIÊM TRỌNG');
-  if (needs.bladder < 15) criticals.push('CẦN ĐI VỆ SINH GẤP');
-  if (needs.energy < 10) criticals.push('KIỆT SỨC');
-
-  let msg = `[${timeStr}] Ưu tiên: ${goal.label} (${goal.urgency}/100).`;
-  if (criticals.length > 0) {
-    msg += ` CẢNH BÁO: ${criticals.join(', ')}!`;
-  }
-  msg += ' Bạn muốn làm gì tiếp theo?';
-  return msg;
-}

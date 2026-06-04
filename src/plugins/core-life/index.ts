@@ -24,6 +24,7 @@ export const coreLifePlugin: Plugin = {
     { name: 'identity', schema: {} },
     { name: 'object_state', schema: {} },
     { name: 'goal', schema: {} },
+    { name: 'task_list', schema: {} },
   ],
   systemFns: [needDecaySystem, interactionSystem],
 };

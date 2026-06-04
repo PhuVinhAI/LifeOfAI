@@ -3,7 +3,6 @@ import { z } from 'zod/v4';
 import type { World } from '../../types/index.js';
 import type { Needs } from '../../plugins/core-life/components/needs.js';
 import type { Inventory } from '../../plugins/core-life/components/inventory.js';
-import { getNeedLabel } from '../../plugins/core-life/systems/need-decay.js';
 
 export const ConsumeParams = z.object({
   item: z.string().describe('Tên món ăn/đồ uống muốn tiêu thụ (phải có trong túi đồ).'),
@@ -34,13 +33,11 @@ export function createConsumeTool(world: World, agentId: string) {
       }
 
       // Apply need restoration
-      const restoreMsg: string[] = [];
       if (item.needRestore) {
         const key = item.needRestore.need as keyof Omit<Needs, 'type'>;
         if (key in needs) {
           const oldVal = needs[key];
           (needs as any)[key] = Math.min(100, oldVal + item.needRestore.value);
-          restoreMsg.push(`${getNeedLabel(item.needRestore.need)} +${item.needRestore.value}`);
         }
       }
 
@@ -52,7 +49,7 @@ export function createConsumeTool(world: World, agentId: string) {
       const duration = item.type === 'food' ? 20 : 10;
       return {
         success: true,
-        message: `Đã ${verb} ${input.item}. ${restoreMsg.join(', ')}.`,
+        message: `Đã ${verb} ${input.item}. ${item.type === 'food' ? 'Đỡ đói hơn' : 'Đỡ khát hơn'}.`,
         duration,
       };
     },

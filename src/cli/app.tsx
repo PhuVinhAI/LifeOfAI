@@ -8,8 +8,7 @@ import { StreamOutput } from './components/StreamOutput.js';
 import { ToolCallLog } from './components/ToolCallLog.js';
 import { Controls } from './components/Controls.js';
 import { useEngine } from './hooks/useEngine.js';
-import { selectGoal } from '../ai/goal-selector.js';
-import type { Needs } from '../plugins/core-life/components/needs.js';
+import type { GoalComponent } from '../plugins/core-life/components/goal.js';
 
 interface AppProps {
   engine: GameEngine;
@@ -58,7 +57,8 @@ export const App: React.FC<AppProps> = ({ engine, agentLoop, roomWidth, roomHeig
 
   const { identity, needs, pos } = getAgentData();
   const objects = getObjects();
-  const goal = needs ? selectGoal(needs as Needs) : null;
+  const agent = engine.world.getEntity('agent_1');
+  const goalComponent = agent?.components.get('goal') as GoalComponent | undefined;
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -82,8 +82,8 @@ export const App: React.FC<AppProps> = ({ engine, agentLoop, roomWidth, roomHeig
         <Box flexDirection="column" flexGrow={1}>
           <AgentStatus
             identity={identity}
-            needs={needs as Needs | undefined}
-            goal={goal}
+            needs={needs}
+            goalComponent={goalComponent}
             timeDisplay={timeDisplay}
             engineState={engineState}
           />

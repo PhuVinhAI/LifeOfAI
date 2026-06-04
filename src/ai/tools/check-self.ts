@@ -4,10 +4,18 @@ import type { World } from '../../types/index.js';
 import type { Needs } from '../../plugins/core-life/components/needs.js';
 import { getNeedLabel } from '../../plugins/core-life/systems/need-decay.js';
 
+function describeLevel(value: number): string {
+  if (value >= 80) return 'tốt';
+  if (value >= 60) return 'hơi kém';
+  if (value >= 40) return 'cần chú ý';
+  if (value >= 20) return 'tệ';
+  return 'rất tệ, cần giải quyết gấp';
+}
+
 export function createCheckSelfTool(world: World, agentId: string) {
   return zodFunction({
     name: 'check_self',
-    description: 'Kiểm tra tình trạng cơ thể hiện tại (đói, khát, năng lượng, vệ sinh, giải trí).',
+    description: 'Cảm nhận tình trạng cơ thể hiện tại. Kết quả trả về bằng mô tả tự nhiên, không phải con số.',
     parameters: z.object({}),
     function: async () => {
       const agent = world.getEntity(agentId);
@@ -16,11 +24,11 @@ export function createCheckSelfTool(world: World, agentId: string) {
       const needs = agent.components.get('needs') as Needs | undefined;
       if (!needs) return { error: 'Không có dữ liệu chỉ số.' };
 
-      const status: Record<string, number> = {};
+      const status: Record<string, string> = {};
       for (const key of ['hunger', 'thirst', 'energy', 'bladder', 'hygiene', 'fun'] as const) {
-        status[getNeedLabel(key)] = Math.round(needs[key]);
+        status[getNeedLabel(key)] = describeLevel(needs[key]);
       }
-      return status;
+      return { message: 'Cảm nhận cơ thể hiện tại:', status };
     },
   });
 }

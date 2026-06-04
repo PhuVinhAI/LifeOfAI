@@ -45,7 +45,7 @@ export const NeedProviderTrait: TraitDefinition = {
     setState(entity, 'in_use');
     return {
       success: true,
-      message: `Đã dùng ${entity.id}. ${getNeedLabel(config.need)} +${config.value}.`,
+      message: `Đã dùng ${entity.id}. Cảm thấy ${getNeedLabel(config.need).toLowerCase()} đã được cải thiện.`,
       duration: config.duration,
       effects: [
         { entityId: user.id, component: 'needs', changes: { [config.need]: config.value } },

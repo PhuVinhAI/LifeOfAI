@@ -21,6 +21,8 @@ import { createIdentity } from './plugins/core-life/components/identity.js';
 import { createPosition } from './plugins/core-life/components/position.js';
 import { createObjectState } from './plugins/core-life/components/object-state.js';
 import { createInventory } from './plugins/core-life/components/inventory.js';
+import { createGoalComponent } from './plugins/core-life/components/goal.js';
+import { createTaskListComponent } from './plugins/core-life/components/task-list.js';
 
 import type { RoomConfig, AgentConfig } from './types/index.js';
 
@@ -61,7 +63,7 @@ async function main() {
   // 3. Load plugins
   const pluginLoader = new PluginLoader();
   pluginLoader.load(coreLifePlugin);
-  pluginLoader.installSystems(engine.world);
+  pluginLoader.installSystems(engine.world, engine.events);
 
   // 4. Spawn room objects
   const traitRegistry = pluginLoader.getTraitRegistry();
@@ -101,7 +103,7 @@ async function main() {
   const identity = createIdentity(agentConfig.name, agentConfig.age, agentConfig.bio);
   const pos = createPosition(agentConfig.startX, agentConfig.startY, roomConfig.id);
 
-  engine.world.spawnEntity(agentId, [needs, identity, pos, createInventory(10)]);
+  engine.world.spawnEntity(agentId, [needs, identity, pos, createInventory(10), createGoalComponent(), createTaskListComponent()]);
 
   // 6. Init AI — supports any OpenAI-compatible provider via OPENAI_BASE_URL
   const apiKey = process.env.OPENAI_API_KEY;

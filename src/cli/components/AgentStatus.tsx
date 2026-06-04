@@ -1,12 +1,13 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import type { Needs } from '../../plugins/core-life/components/needs.js';
+import type { GoalComponent } from '../../plugins/core-life/components/goal.js';
 import { getNeedLabel } from '../../plugins/core-life/systems/need-decay.js';
 
 interface AgentStatusProps {
   identity: { name: string; age: number } | undefined;
   needs: Needs | undefined;
-  goal: { label: string; urgency: number } | null;
+  goalComponent: GoalComponent | undefined;
   timeDisplay: string;
   engineState: string;
 }
@@ -27,10 +28,11 @@ function NeedBar({ value, label }: { value: number; label: string }) {
 export const AgentStatus: React.FC<AgentStatusProps> = ({
   identity,
   needs,
-  goal,
+  goalComponent,
   timeDisplay,
   engineState,
 }) => {
+  const currentGoal = goalComponent?.current;
   return (
     <Box flexDirection="column" borderStyle="single" padding={1}>
       <Text bold>
@@ -45,9 +47,9 @@ export const AgentStatus: React.FC<AgentStatusProps> = ({
           {engineState === 'running' ? '▶ ĐANG SỐNG' : '⏸ TẠM DỪNG'}
         </Text>
       </Text>
-      {goal && (
-        <Text>
-          Mục tiêu: {goal.label} (khẩn cấp: {goal.urgency}/100)
+      {currentGoal && (
+        <Text color="cyan">
+          🎯 {currentGoal.description}
         </Text>
       )}
       <Box marginTop={1} flexDirection="column">
